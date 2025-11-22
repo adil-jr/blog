@@ -7,7 +7,7 @@ import { postsTable } from './schemas';
   const posts = await jsonPostRepository.findAll();
 
   try {
-    // await drizzleDb.delete(postsTable);
+    await drizzleDb.delete(postsTable);
     await drizzleDb.insert(postsTable).values(posts);
 
     console.log();
