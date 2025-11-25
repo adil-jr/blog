@@ -278,6 +278,123 @@ O deploy mais fácil é usando a [Vercel Platform](https://vercel.com/new):
 
 **Nota**: Para produção com SQLite, considere usar um volume persistente ou migrar para PostgreSQL/MySQL.
 
+### Nginx (VPS/Servidor Dedicado)
+
+Este projeto inclui configurações nginx prontas para deploy em VPS ou servidor dedicado. Os arquivos estão disponíveis no diretório `nginx/`.
+
+#### Pré-requisitos
+
+- Node.js 18 ou superior instalado no servidor
+- Nginx instalado
+- Domínio configurado com DNS apontando para o IP do servidor
+- Portas 80 e 443 abertas no firewall
+
+#### Arquivos de Configuração Disponíveis
+
+- **`nginx/the-blog-80`**: Configuração HTTP (porta 80) - para testes ou desenvolvimento
+- **`nginx/the-blog-443`**: Configuração HTTPS completa (porta 443) - recomendada para produção
+
+#### Passo a Passo
+
+**1. Faça o build da aplicação**
+
+```bash
+npm run build
+```
+
+**2. Inicie o Next.js em modo produção**
+
+É recomendado usar um gerenciador de processos (PM2, systemd, etc.) para manter a aplicação rodando:
+
+```bash
+npm run start
+```
+
+Certifique-se de que a aplicação está rodando na porta 3000 (padrão).
+
+**3. Instale o Certbot para certificados SSL (HTTPS)**
+
+Para Ubuntu/Debian:
+
+```bash
+sudo apt update
+sudo apt install certbot python3-certbot-nginx
+```
+
+**4. Configure o nginx para HTTP primeiro**
+
+Copie o arquivo de configuração básico:
+
+```bash
+sudo cp nginx/the-blog-80 /etc/nginx/sites-available/blog
+```
+
+Edite o arquivo e substitua os valores:
+
+```bash
+sudo nano /etc/nginx/sites-available/blog
+```
+
+Atualize as seguintes linhas:
+- `server_name theblog.adyu.dev.br;` → `server_name seu-dominio.com;`
+- `alias /home/adil.jr/theblog/public/;` → `alias /caminho/do/seu/projeto/public/;`
+- Atualize ambas as ocorrências do path (linhas com `/public/` e `/uploads/`)
+
+**5. Habilite o site**
+
+```bash
+sudo ln -s /etc/nginx/sites-available/blog /etc/nginx/sites-enabled/
+sudo nginx -t  # Testa a configuração
+sudo systemctl reload nginx
+```
+
+**6. Obtenha certificado SSL com Certbot**
+
+```bash
+sudo certbot --nginx -d seu-dominio.com
+```
+
+Siga as instruções. O Certbot irá automaticamente:
+- Obter o certificado SSL
+- Atualizar a configuração do nginx
+- Configurar renovação automática
+
+**7. (Opcional) Use a configuração HTTPS completa**
+
+Para ter mais controle (headers de segurança, gzip, etc.), use a configuração `nginx/the-blog-443`:
+
+```bash
+sudo cp nginx/the-blog-443 /etc/nginx/sites-available/blog
+sudo nano /etc/nginx/sites-available/blog
+```
+
+Atualize os mesmos valores do passo 4, além de:
+- Caminhos dos certificados SSL (se diferentes do padrão do Certbot)
+- Caminhos dos logs (se desejar)
+
+Recarregue o nginx:
+
+```bash
+sudo systemctl reload nginx
+```
+
+#### Recursos da Configuração
+
+- ✓ Proxy buffering desabilitado para Next.js Streaming/Suspense
+- ✓ Servir arquivos estáticos otimizado
+- ✓ Headers de segurança (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection)
+- ✓ Bloqueio de acesso a arquivos sensíveis (.env, .git, etc.)
+- ✓ Compressão Gzip habilitada
+- ✓ Suporte a WebSocket pronto
+- ✓ Redirecionamento HTTP → HTTPS
+
+#### Notas Importantes
+
+- Atualize `IMAGE_SERVER_URL` no `.env` para corresponder ao seu domínio (ex: `https://seu-dominio.com/uploads`)
+- Certifique-se de que o processo do Next.js está rodando antes de iniciar o nginx
+- A renovação automática do Certbot é configurada por padrão (teste com `sudo certbot renew --dry-run`)
+- Verifique os logs de erro do nginx se houver problemas: `/var/log/nginx/theblog.error.log`
+
 ### Outras Plataformas
 
 Consulte a [documentação de deploy do Next.js](https://nextjs.org/docs/app/building-your-application/deploying) para outras opções.
